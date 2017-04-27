@@ -1,6 +1,19 @@
+# Author: Dedeepya Bonthu <dedeepya.bonthu@gmail.com>
+# Date:  2017-04-27
+
+"""
+Shows the definition of a word from Oxford dictionary.
+If no word is specified, it picks random words from the corpus and saves their
+definitions
+
+Requires:
+Word: The word for which definition needs to be shown
+Count: # word definitions to be saved
+"""
+
+import argparse
 import os
 import random
-import sys
 import time
 from PIL import Image
 from selenium import webdriver
@@ -11,21 +24,24 @@ def get_words(count):
         lines = f.readlines()
         while count:
             count -= 1
-            number = random.randint(10000, 50000)
+            number = random.randint(1, len(lines))
             word = lines[number].split()[0]
             try:
-                url = 'https://en.oxforddictionaries.com/definition/{word}'.\
-                    format(word=word)
-                current_date = time.strftime("%d-%m-%Y")
-                path = './words/{word}_{date}.png'.format(word=word,
-                                                          date=current_date)
-                save_image(url, path, word)
+                get_word(word, True)
             except Exception as exception:
                 print exception
                 count += 1
 
 
-def save_image(url, path, word):
+def get_word(word, save=False):
+    url = 'https://en.oxforddictionaries.com/definition/{word}'.format(
+        word=word)
+    current_date = time.strftime("%d-%m-%Y")
+    path = './words/{word}_{date}.png'.format(word=word, date=current_date)
+    get_image(url, path, word, save)
+
+
+def get_image(url, path, word, save):
     """Take screenshot"""
     driver = webdriver.PhantomJS(service_args=['--ignore-ssl-errors=true',
                                                '--ssl-protocol=any'])
@@ -61,11 +77,28 @@ def save_image(url, path, word):
     bottom = int(location['y'] + size['height'])
 
     im1 = im.crop((left, top, right, bottom))
-    im1.save(path)
+    if save:
+        im1.save(path)
+    else:
+        im1.show()
 
     os.remove('temp.png')
 
 
 if __name__ == '__main__':
-    count = int(sys.argv[1])
-    get_words(count)
+    parser = argparse.ArgumentParser(description='Tool to get the definition \
+of words', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    default_count = 10
+    parser.add_argument('--count', action='store', dest='count',
+                        default=default_count)
+    parser.add_argument('--word', action='store', dest='word', default=None)
+
+    arguments = parser.parse_args()
+    count = arguments.count
+    word = arguments.word
+
+    if word:
+        get_word(word)
+    else:
+        get_words(count)
